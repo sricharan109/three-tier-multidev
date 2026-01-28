@@ -1,23 +1,21 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Three Tier App</title>
+  <title>Three Tier App - DEV</title>
 </head>
 <body>
+  <h2>Message from Backend</h2>
+  <div id="msg">Loading...</div>
 
-<h2>Frontend Page</h2>
-<p id="msg">Loading...</p>
-
-<script>
-  fetch("http://three-tier-alb-3093787.us-east-1.elb.amazonaws.com/message")
-    .then(response => response.text())
-    .then(data => {
-      document.getElementById("msg").innerText = data;
-    })
-    .catch(err => {
-      document.getElementById("msg").innerText = "Error connecting to backend";
-    });
-</script>
-
+  <script>
+    fetch("http://<dev-albs-1156709420.us-east-1.elb.amazonaws.com>/message")
+      .then(res => res.text())
+      .then(data => {
+        document.getElementById("msg").innerText = data;
+      })
+      .catch(() => {
+        document.getElementById("msg").innerText = "Error contacting backend";
+      });
+  </script>
 </body>
 </html>
