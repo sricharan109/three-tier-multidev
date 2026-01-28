@@ -1,13 +1,11 @@
 pipeline {
-  agent any
-
+  agent { label 'docker' }   // 
   environment {
     IMAGE_NAME = "sricharanns/three-tier-backend"
     IMAGE_TAG  = "${BUILD_NUMBER}"
   }
 
   stages {
-
     stage('Detect Environment') {
       steps {
         script {
@@ -18,43 +16,34 @@ pipeline {
             env.DB_NAME      = 'dev-db'
             env.DB_USER      = 'admin'
             env.DB_PASS      = credentials('dev-db-pass')
-          }
-          else if (env.BRANCH_NAME == 'qa') {
+          } else if (env.BRANCH_NAME == 'qa') {
             env.ENV_NAME     = 'qa'
             env.BACKEND_EC2  = '10.0.139.102'
             env.DB_HOST      = 'qa-db.cuhao8aouanz.us-east-1.rds.amazonaws.com'
             env.DB_NAME      = 'qa-db'
             env.DB_USER      = 'admin'
             env.DB_PASS      = credentials('qa-db-pass')
-          }
-          else if (env.BRANCH_NAME == 'main') {
+          } else if (env.BRANCH_NAME == 'main') {
             env.ENV_NAME     = 'prod'
             env.BACKEND_EC2  = '10.0.142.36'
             env.DB_HOST      = 'qa-db.cuhao8aouanz.us-east-1.rds.amazonaws.com'
             env.DB_NAME      = 'qa-db'
             env.DB_USER      = 'admin'
             env.DB_PASS      = credentials('prod-db-pass')
-          }
-          else {
+          } else {
             error "Unsupported branch: ${env.BRANCH_NAME}"
           }
-
-          echo "Deploying to environment: ${ENV_NAME}"
         }
       }
     }
 
     stage('Checkout Code') {
-      steps {
-        checkout scm
-      }
+      steps { checkout scm }
     }
 
     stage('Build Docker Image') {
       steps {
-        sh '''
-          docker build -t $IMAGE_NAME:$IMAGE_TAG backend/
-        '''
+        sh 'docker build -t $IMAGE_NAME:$IMAGE_TAG backend/'
       }
     }
 
@@ -81,9 +70,7 @@ pipeline {
               docker pull ${IMAGE_NAME}:${IMAGE_TAG} &&
               docker stop backend || true &&
               docker rm backend || true &&
-              docker run -d \
-                --name backend \
-                -p 3000:3000 \
+              docker run -d --name backend -p 3000:3000 \
                 -e ENV_NAME=${ENV_NAME} \
                 -e DB_HOST=${DB_HOST} \
                 -e DB_USER=${DB_USER} \
@@ -95,30 +82,10 @@ pipeline {
         }
       }
     }
-    stage('Deploy Frontend') {
-  steps {
-    sshagent(['frontend-ssh']) {
-      sh """
-        scp -o StrictHostKeyChecking=no frontend/index.html \
-        ubuntu@FRONTEND_PUBLIC_IP:/tmp/index.html
-
-        ssh -o StrictHostKeyChecking=no ubuntu@FRONTEND_PUBLIC_IP '
-          sudo mv /tmp/index.html /var/www/html/index.html &&
-          sudo systemctl reload nginx
-        '
-      """
-    }
-  }
-}
-
   }
 
   post {
-    success {
-      echo "Deployment successful for ${ENV_NAME}"
-    }
-    failure {
-      echo "Deployment failed for ${ENV_NAME}"
-    }
+    success { echo "Deployment successful for ${ENV_NAME}" }
+    failure { echo "Deployment failed for ${ENV_NAME}" }
   }
 }
