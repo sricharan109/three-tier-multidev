@@ -43,9 +43,6 @@ pipeline {
       }
     }
 
-    /* =========================
-       CHECKOUT
-       ========================= */
     stage('Checkout Code') {
       steps {
         checkout scm
