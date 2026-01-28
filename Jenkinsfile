@@ -8,9 +8,7 @@ pipeline {
 
   stages {
 
-    /* =========================
-       ENVIRONMENT SELECTION
-       ========================= */
+   
     stage('Detect Environment') {
       steps {
         script {
@@ -39,26 +37,22 @@ pipeline {
             env.DB_PASS     = credentials('prod-db-pass')
           }
           else {
-            error "❌ Unsupported branch: ${env.BRANCH_NAME}"
+            error " Unsupported branch: ${env.BRANCH_NAME}"
           }
 
-          echo "🚀 Deploying ${env.BRANCH_NAME} → ${env.ENV_NAME}"
+          echo "Deploying ${env.BRANCH_NAME} → ${env.ENV_NAME}"
         }
       }
     }
 
-    /* =========================
-       CHECKOUT
-       ========================= */
+   
     stage('Checkout Code') {
       steps {
         checkout scm
       }
     }
 
-    /* =========================
-       BUILD IMAGE
-       ========================= */
+    
     stage('Build Docker Image') {
       steps {
         sh '''
@@ -67,9 +61,7 @@ pipeline {
       }
     }
 
-    /* =========================
-       PUSH IMAGE
-       ========================= */
+  
     stage('Push Image to Docker Hub') {
       steps {
         withCredentials([usernamePassword(
@@ -85,39 +77,39 @@ pipeline {
       }
     }
 
-    /* =========================
-       DEPLOY BACKEND
-       ========================= */
-    stage('Deploy Backend') {
-      steps {
-        sshagent(['backend-ssh']) {
-          sh """
-            ssh -o StrictHostKeyChecking=no ubuntu@${BACKEND_EC2} '
-              docker pull ${IMAGE_NAME}:${IMAGE_TAG} &&
-              docker stop backend || true &&
-              docker rm backend || true &&
-              docker run -d \
-                --name backend \
-                -p 3000:3000 \
-                -e ENV_NAME=${ENV_NAME} \
-                -e DB_HOST=${DB_HOST} \
-                -e DB_USER=${DB_USER} \
-                -e DB_PASS=${DB_PASS} \
-                -e DB_NAME=${DB_NAME} \
-                ${IMAGE_NAME}:${IMAGE_TAG}
-            '
-          """
-        }
+    
+   stage('Deploy Backend') {
+  steps {
+    sshagent(['backend-ssh']) {
+      withCredentials([string(credentialsId: 'dev-db-pass', variable: 'DB_PASS')]) {
+        sh """
+          ssh -o StrictHostKeyChecking=no ubuntu@${BACKEND_EC2} '
+            docker pull ${IMAGE_NAME}:${IMAGE_TAG} &&
+            docker stop backend || true &&
+            docker rm backend || true &&
+            docker run -d \
+              --name backend \
+              -p 3000:3000 \
+              -e ENV_NAME=${ENV_NAME} \
+              -e DB_HOST=${DB_HOST} \
+              -e DB_USER=${DB_USER} \
+              -e DB_PASS=${DB_PASS} \
+              -e DB_NAME=${DB_NAME} \
+              ${IMAGE_NAME}:${IMAGE_TAG}
+          '
+        """
       }
     }
   }
+}
+
 
   post {
     success {
-      echo "✅ ${ENV_NAME} deployment successful"
+      echo " ${ENV_NAME} deployment successful"
     }
     failure {
-      echo "❌ ${ENV_NAME} deployment failed"
+      echo " ${ENV_NAME} deployment failed"
     }
   }
 }
