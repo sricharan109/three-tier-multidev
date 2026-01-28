@@ -7,10 +7,6 @@ pipeline {
   }
 
   stages {
-
-    /* =========================
-       ENVIRONMENT SELECTION
-       ========================= */
     stage('Detect Environment') {
       steps {
         script {
@@ -55,10 +51,6 @@ pipeline {
         checkout scm
       }
     }
-
-    /* =========================
-       BUILD IMAGE
-       ========================= */
     stage('Build Docker Image') {
       steps {
         sh '''
@@ -85,9 +77,6 @@ pipeline {
       }
     }
 
-    /* =========================
-       DEPLOY BACKEND
-       ========================= */
     stage('Deploy Backend') {
       steps {
         sshagent(['backend-ssh']) {
