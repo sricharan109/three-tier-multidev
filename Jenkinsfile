@@ -8,6 +8,9 @@ pipeline {
 
   stages {
 
+    /* =========================
+       DETECT ENVIRONMENT
+       ========================= */
     stage('Detect Environment') {
       steps {
         script {
@@ -28,29 +31,35 @@ pipeline {
             env.DB_CRED     = 'qa-db-pass'
           }
           else if (env.BRANCH_NAME == 'main') {
-            env.ENV_NAME    = 'prod'
-            env.BACKEND_EC2 = '10.0.142.36'
+            env.ENV_NAME     = 'prod'
+            env.BACKEND_EC2  = '10.0.142.36'
             env.FRONTEND_EC2 = '44.204.127.191'
-            env.DB_HOST     = 'prod-db.cuhao8aouanz.us-east-1.rds.amazonaws.com'
-            env.DB_NAME     = 'prod-db'
-            env.DB_USER     = 'admin'
-            env.DB_CRED     = 'prod-db-pass'
+            env.DB_HOST      = 'prod-db.cuhao8aouanz.us-east-1.rds.amazonaws.com'
+            env.DB_NAME      = 'prod-db'
+            env.DB_USER      = 'admin'
+            env.DB_CRED      = 'prod-db-pass'
           }
           else {
             error "Unsupported branch: ${env.BRANCH_NAME}"
           }
 
-          echo " Deploying ${env.BRANCH_NAME} → ${env.ENV_NAME}"
+          echo "Deploying ${env.BRANCH_NAME} → ${env.ENV_NAME}"
         }
       }
     }
 
+    /* =========================
+       CHECKOUT
+       ========================= */
     stage('Checkout Code') {
       steps {
         checkout scm
       }
     }
 
+    /* =========================
+       BUILD IMAGE
+       ========================= */
     stage('Build Docker Image') {
       steps {
         sh """
@@ -59,6 +68,9 @@ pipeline {
       }
     }
 
+    /* =========================
+       PUSH IMAGE
+       ========================= */
     stage('Push Image to Docker Hub') {
       steps {
         withCredentials([usernamePassword(
@@ -74,6 +86,9 @@ pipeline {
       }
     }
 
+    /* =========================
+       DEPLOY BACKEND
+       ========================= */
     stage('Deploy Backend') {
       steps {
         sshagent(['backend-ssh']) {
@@ -98,45 +113,46 @@ pipeline {
         }
       }
     }
+
+    /* =========================
+       DEPLOY FRONTEND (PROD ONLY)
+       ========================= */
     stage('Deploy Frontend (Prod only)') {
-  when {
-    branch 'main'
-  }
-stage('Deploy Frontend (Prod only)') {
-  when {
-    branch 'main'
-  }
-  steps {
-    sshagent(['frontend-ssh']) {
-      sh """
-        ssh -o StrictHostKeyChecking=no ubuntu@${FRONTEND_EC2} '
-          mkdir -p /tmp/frontend
-        '
+      when {
+        branch 'main'
+      }
+      steps {
+        sshagent(['frontend-ssh']) {
+          sh """
+            ssh -o StrictHostKeyChecking=no ubuntu@${FRONTEND_EC2} '
+              mkdir -p /tmp/frontend
+            '
 
-        scp -o StrictHostKeyChecking=no frontend/index.html \
-        ubuntu@${FRONTEND_EC2}:/tmp/frontend/index.html
+            scp -o StrictHostKeyChecking=no frontend/index.html \
+            ubuntu@${FRONTEND_EC2}:/tmp/frontend/index.html
 
-        ssh -o StrictHostKeyChecking=no ubuntu@${FRONTEND_EC2} '
-          sudo rm -rf /var/www/html/* &&
-          sudo cp /tmp/frontend/index.html /var/www/html/index.html &&
-          sudo systemctl reload nginx
-        '
-      """
+            ssh -o StrictHostKeyChecking=no ubuntu@${FRONTEND_EC2} '
+              sudo rm -rf /var/www/html/* &&
+              sudo cp /tmp/frontend/index.html /var/www/html/index.html &&
+              sudo systemctl reload nginx
+            '
+          """
+        }
+      }
     }
+
   }
-}
 
-
-
-  } 
-
+  /* =========================
+     POST ACTIONS
+     ========================= */
   post {
     success {
-      echo "${ENV_NAME} deployment successful"
+      echo " ${ENV_NAME} deployment successful"
     }
     failure {
       echo " ${ENV_NAME} deployment failed"
     }
   }
 
-} 
+} // end pipeline
