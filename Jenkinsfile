@@ -1,5 +1,5 @@
 pipeline {
-  agent { label 'docker' }   // 🔑 ALWAYS run on Docker agents
+  agent any
 
   environment {
     IMAGE_NAME = "sricharanns/three-tier-backend"
