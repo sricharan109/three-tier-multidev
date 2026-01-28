@@ -38,10 +38,10 @@ pipeline {
             env.DB_PASS     = credentials('prod-db-pass')
           }
           else {
-            error "❌ Unsupported branch: ${env.BRANCH_NAME}"
+            error " Unsupported branch: ${env.BRANCH_NAME}"
           }
 
-          echo "🚀 Deploying ${env.BRANCH_NAME} → ${env.ENV_NAME}"
+          echo "Deploying ${env.BRANCH_NAME} → ${env.ENV_NAME}"
         }
       }
     }
@@ -113,10 +113,10 @@ pipeline {
 
   post {
     success {
-      echo "✅ ${ENV_NAME} deployment successful"
+      echo "${ENV_NAME} deployment successful"
     }
     failure {
-      echo "❌ ${ENV_NAME} deployment failed"
+      echo "${ENV_NAME} deployment failed"
     }
   }
 }
