@@ -12,22 +12,34 @@ pipeline {
       steps {
         script {
           if (env.BRANCH_NAME == 'develop') {
-            env.ENV_NAME = 'dev'
-            env.BACKEND_EC2 = 'DEV_BACKEND_PRIVATE_IP'
+            env.ENV_NAME     = 'dev'
+            env.BACKEND_EC2  = '10.0.134.200'
+            env.DB_HOST      = 'dev-db.cuhao8aouanz.us-east-1.rds.amazonaws.com'
+            env.DB_NAME      = 'dev-db'
+            env.DB_USER      = 'admin'
+            env.DB_PASS      = credentials('dev-db-pass')
           }
           else if (env.BRANCH_NAME == 'qa') {
-            env.ENV_NAME = 'qa'
-            env.BACKEND_EC2 = 'QA_BACKEND_PRIVATE_IP'
+            env.ENV_NAME     = 'qa'
+            env.BACKEND_EC2  = '10.0.139.102'
+            env.DB_HOST      = 'qa-db.cuhao8aouanz.us-east-1.rds.amazonaws.com'
+            env.DB_NAME      = 'qa-db'
+            env.DB_USER      = 'admin'
+            env.DB_PASS      = credentials('qa-db-pass')
           }
           else if (env.BRANCH_NAME == 'main') {
-            env.ENV_NAME = 'prod'
-            env.BACKEND_EC2 = 'PROD_BACKEND_PRIVATE_IP'
+            env.ENV_NAME     = 'prod'
+            env.BACKEND_EC2  = '10.0.142.36'
+            env.DB_HOST      = 'qa-db.cuhao8aouanz.us-east-1.rds.amazonaws.com'
+            env.DB_NAME      = 'qa-db'
+            env.DB_USER      = 'admin'
+            env.DB_PASS      = credentials('prod-db-pass')
           }
           else {
             error "Unsupported branch: ${env.BRANCH_NAME}"
           }
 
-          echo "Deploying to environment: ${env.ENV_NAME}"
+          echo "Deploying to environment: ${ENV_NAME}"
         }
       }
     }
@@ -73,12 +85,32 @@ pipeline {
                 --name backend \
                 -p 3000:3000 \
                 -e ENV_NAME=${ENV_NAME} \
+                -e DB_HOST=${DB_HOST} \
+                -e DB_USER=${DB_USER} \
+                -e DB_PASS=${DB_PASS} \
+                -e DB_NAME=${DB_NAME} \
                 ${IMAGE_NAME}:${IMAGE_TAG}
             '
           """
         }
       }
     }
+    stage('Deploy Frontend') {
+  steps {
+    sshagent(['frontend-ssh']) {
+      sh """
+        scp -o StrictHostKeyChecking=no frontend/index.html \
+        ubuntu@FRONTEND_PUBLIC_IP:/tmp/index.html
+
+        ssh -o StrictHostKeyChecking=no ubuntu@FRONTEND_PUBLIC_IP '
+          sudo mv /tmp/index.html /var/www/html/index.html &&
+          sudo systemctl reload nginx
+        '
+      """
+    }
+  }
+}
+
   }
 
   post {
@@ -86,7 +118,7 @@ pipeline {
       echo "Deployment successful for ${ENV_NAME}"
     }
     failure {
-      echo "Deployment failed"
+      echo "Deployment failed for ${ENV_NAME}"
     }
   }
 }
