@@ -102,20 +102,30 @@ pipeline {
   when {
     branch 'main'
   }
+stage('Deploy Frontend (Prod only)') {
+  when {
+    branch 'main'
+  }
   steps {
     sshagent(['frontend-ssh']) {
       sh """
-        scp -o StrictHostKeyChecking=no -r frontend/* ubuntu@${FRONTEND_EC2}:/tmp/frontend/
+        ssh -o StrictHostKeyChecking=no ubuntu@${FRONTEND_EC2} '
+          mkdir -p /tmp/frontend
+        '
+
+        scp -o StrictHostKeyChecking=no frontend/index.html \
+        ubuntu@${FRONTEND_EC2}:/tmp/frontend/index.html
 
         ssh -o StrictHostKeyChecking=no ubuntu@${FRONTEND_EC2} '
           sudo rm -rf /var/www/html/* &&
-          sudo cp -r /tmp/frontend/* /var/www/html/ &&
+          sudo cp /tmp/frontend/index.html /var/www/html/index.html &&
           sudo systemctl reload nginx
         '
       """
     }
   }
 }
+
 
 
   } 
