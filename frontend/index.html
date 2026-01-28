@@ -8,7 +8,7 @@
   <div id="msg">Loading...</div>
 
   <script>
-      fetch("http://dev-albs-1156709420.us-east-1.elb.amazonaws.com/message")
+      fetch("/api/message")
 
       .then(res => res.text())
       .then(data => {
