@@ -33,7 +33,7 @@ pipeline {
           else if (env.BRANCH_NAME == 'main') {
             env.ENV_NAME     = 'prod'
             env.BACKEND_EC2  = '10.0.142.36'
-            env.FRONTEND_EC2 = '44.204.127.191'
+            env.FRONTEND_EC2 = '44.202.221.73'
             env.DB_HOST      = 'prod-db.cuhao8aouanz.us-east-1.rds.amazonaws.com'
             env.DB_NAME      = 'prod-db'
             env.DB_USER      = 'admin'
